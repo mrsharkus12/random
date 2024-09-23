@@ -45,3 +45,18 @@ offset = int(input())
 
 # drawChristmasTree(2, 3, 2, 3)
 drawChristmasTree(leaves, width, height, offset)
+
+## with the default values, the result should be
+
+#     *
+#    ***
+#   *****
+#  *******
+# *********
+#     *
+#    ***
+#   *****
+#  *******
+# *********
+#    ***
+#    ***
