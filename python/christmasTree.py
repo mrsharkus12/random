@@ -3,13 +3,14 @@ char = "*"
 emptyChar = " "
 
 # define trig drawing as a function
-def drawTriangle(height):
+def drawTriangle(height, offset):
     # do an xtra row to avoid first empty row
     row = 1 
+    offset = 0
 
     while row <= height:
         # make offsets
-        space = height - row  
+        space = height - row + offset  
         print(emptyChar * space, end="")
 
         # make 1st side
@@ -28,7 +29,7 @@ def drawChristmasTree(layers, trunk_width, trunk_height, trunk_space):
     # 5 is good enough
     height = 5
     for i in range(layers):
-        drawTriangle(height)
+        drawTriangle(height, 0)
     
     # draw the trunk of da tree
     for i in range(trunk_height):
