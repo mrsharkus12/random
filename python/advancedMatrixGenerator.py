@@ -1,5 +1,14 @@
 # import os
 
+## input check
+def stupidCheck(prompt):
+    while True:
+        try:
+            value = int(input(prompt))
+            if value > 0: return value
+            else: print("idiot!! do NOT enter negatives!!!!!!")
+        except ValueError: print("error!!!!")
+
 ## matrix drawing
 def drawList(list, maxSize):
     n = 0
@@ -25,8 +34,8 @@ def saveToFile(list, maxSize, fileName):
         # file.write("\n")
     print(f"Successfully saved to {fileName}")
 
-rows = int(input("Enter the number of rows: "))
-cols = int(input("Enter the number of columns: "))
+rows = stupidCheck("Enter the number of rows: ")
+cols = stupidCheck("Enter the number of columns: ")
 
 list = [[0 for _ in range(cols)] for _ in range(rows)]
 
@@ -48,13 +57,18 @@ while True:
     edit = input("Edit a cell? (Y/N): ").strip().lower()
     if edit != 'y': break
 
-    row = int(input(f"Enter the row (0 to {rows - 1}): "))
-    col = int(input(f"Enter the column (0 to {cols - 1}): "))
+    ## implement silly check
+    try:
+        row = int(input(f"Enter the row (0 to {rows - 1}): "))
+        col = int(input(f"Enter the column (0 to {cols - 1}): "))
 
-    if 0 <= row < rows and 0 <= col < cols:
-        new_value = int(input(f"Enter a new value for cell ({row}, {col}): "))
-        list[row][col] = new_value
-    else: print(f"Error!! Invalid row or column.")
+        if 0 <= row < rows and 0 <= col < cols:
+            new_value = int(input(f"Enter the new value for cell ({row}, {col}): "))
+            list[row][col] = new_value
+        else:
+            print(f"Error!! Invalid row or column.")
+    except ValueError:
+        print("error!!!")
 
 print("\nFinal:")
 drawList(list, max_size)
