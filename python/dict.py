@@ -25,6 +25,7 @@ while True:
     except TypeError:
         print("Fatal error!!! pls restart")
         break
+
     print("Make a selection (Edit, View, Delete, Save, Load, End)")
     sel = input()
     sel = sel.lower().replace(" ", "")
@@ -32,24 +33,24 @@ while True:
     if sel == "edit" or sel == "e":
         editType = ""
         print(tempDict)
-        input1 = input("Name: ")
-        input2 = input("Parameter: ")
-        input3 = input("Value: ")
-        if input1 not in tempDict:
-            tempDict[input1] = {}
+        name = input("Name: ")
+        param = input("Parameter: ")
+        val = input("Value: ")
+        if name not in tempDict:
+            tempDict[name] = {}
             editType = "Added"
         else:
             editType = "Edited"
-        tempDict[input1][input2] = input3
-        print(f"{editType} {input1}'s {input2} to {input3}")
+        tempDict[name][param] = val
+        print(f"{editType} {name}'s {param} to {val}")
     elif sel == "view" or sel == "v":
         print(tempDict)
     elif sel == "delete" or sel == "d" or sel == "del":
         print(tempDict)
-        input1 = input("Name: ")
+        name = input("Name: ")
         try:
-            del tempDict[input1]
-            print(f"Removed {input1} from current dictionary")
+            del tempDict[name]
+            print(f"Removed {name} from current dictionary")
         except KeyError:
             print("Item does not exist")
     elif sel == "save" or sel == "s":
