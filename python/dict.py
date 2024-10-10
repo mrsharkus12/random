@@ -1,7 +1,7 @@
 import json
 
 SampleDict = {"workers": {"john": {"occupation": "director", "wage": 1500}}}
-DefaultFileName = "Default"
+DefaultFileName = "Default.json"
 
 try:
     with open(DefaultFileName, "r", encoding='utf-8') as file:
@@ -51,6 +51,8 @@ while True:
     elif sel == "save" or sel == "s":
         print('Enter file name')
         fileName = input("")
+        if not fileName.endswith('.json'):
+            fileName = fileName + ".json"
         try:
             with open(fileName, "w") as file:
                 string = json.dumps(dict)
@@ -61,6 +63,8 @@ while True:
     elif sel == "load" or sel == "l":
         print('Enter file name')
         fileName = input("")
+        if not fileName.endswith('.json'):
+            fileName = fileName + ".json"
         try:
             with open(fileName, "r", encoding='utf-8') as file:
                 string = json.load(file)
