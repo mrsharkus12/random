@@ -1,6 +1,6 @@
 import json
 
-SampleDict = {"workers": {"john": {"occupation": "director", "wage": 1500}}}
+SampleDict = {"john": {"occupation": "director", "wage": 1500}}
 DefaultFileName = "Default.json"
 
 try:
@@ -20,7 +20,11 @@ except FileNotFoundError:
         # print(f"Successfully read {DefaultFileName}")
 
 while True:
-    tempDict = dict["workers"]
+    try:
+        tempDict = dict
+    except TypeError:
+        print("Fatal error!!! pls restart")
+        break
     print("Make a selection (Edit, View, Delete, Save, Load, End)")
     sel = input()
     sel = sel.lower().replace(" ", "")
