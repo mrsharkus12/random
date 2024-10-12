@@ -1,6 +1,6 @@
 import curses
 
-def main(stdscr):
+def mainGUI(stdscr):
     key = ""
     sel = 0
     options = ["Edit", "View", "Delete", "Load", "Save", "Exit"]
@@ -22,12 +22,23 @@ def main(stdscr):
         key = stdscr.getch()
         
         if key == curses.KEY_UP:
-            sel = (sel - 1)
+            sel = (sel - 1)%len(options)
         elif key == curses.KEY_DOWN:
-            sel = (sel + 1)
-        elif key == ord('q'):
-            break
+            sel = (sel + 1)%len(options)
+        elif key in (curses.KEY_ENTER, 10):
+            if sel == 0:
+                print("test!!!")
+            elif sel == 1:
+                print("test!!!")
+            elif sel == 2:
+                print("test!!!")
+            elif sel == 3:
+                print("test!!!")
+            elif sel == 4:
+                print("test!!!")
+            elif sel == 5:
+                break
 
         stdscr.refresh()
 
-curses.wrapper(main)
+curses.wrapper(mainGUI)
