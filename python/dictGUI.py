@@ -1,13 +1,19 @@
-import curses
-import json
+Debug_VSCodeInput = True ## Put it on true if ur gonna use it in VSCode's terminal, otherwise, keep it false.
+# Check if all required modules are installed
+try:
+    import curses
+    import json
+except ModuleNotFoundError:
+    isProgramActive = False
+    print("Critical modules not found.")
+    print("Make sure that you've got both 'json' and 'curses' packages")
+    print("both properly installed and set up.")
+    quit()
 
 isProgramActive = True
 
-SampledictData = {"john": {"occupation": "director", "wage": 1500}}
-DefaultFileName = "Default.json"
-
+# VSCode input handling
 # VSCode sucks balls >:(
-Debug_VSCodeInput = True
 TerminalKeys = [curses.KEY_UP, curses.KEY_DOWN, curses.KEY_RIGHT, curses.KEY_LEFT] 
 VSCodeKeys = [curses.KEY_A2, curses.KEY_C2, curses.KEY_B3, curses.KEY_B1]
 
@@ -16,7 +22,10 @@ if Debug_VSCodeInput:
 else:
     inputKeys = TerminalKeys
 
-# def file creation
+# Default file creation
+SampleDictData = {"john": {"occupation": "director", "wage": 1500}}
+DefaultFileName = "Default.json"
+
 try:
     with open(DefaultFileName, "r", encoding='utf-8') as file:
         string = json.load(file)
@@ -25,7 +34,7 @@ try:
 except FileNotFoundError:
     # create a sample file
     with open(DefaultFileName, "w") as file:
-        string = json.dumps(SampledictData)
+        string = json.dumps(SampleDictData)
         file.write(string)
     # print(f"Successfully saved to {DefaultFileName}")
     with open(DefaultFileName, "r", encoding='utf-8') as file:
@@ -33,7 +42,7 @@ except FileNotFoundError:
         dictData = string
         # print(f"Successfully read {DefaultFileName}")
 
-# submenus
+# sub-menus
 def editMenu(stdscr):
     global dictData
     try:
