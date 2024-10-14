@@ -101,24 +101,31 @@ def viewMenu(stdscr):
 
         if key in (curses.KEY_ENTER, 10):
             break
-        else:
-            stdscr.refresh()
-            stdscr.getch()
 def deleteMenu(stdscr):
-    key = ""
-    sel = 0
+    try:
+        tempDict = dict
+    except TypeError:
+        stdscr.addstr(15, 0, "Fatal error!!!", curses.color_pair(2))
 
     while True:
         stdscr.clear()
-        stdscr.addstr(0, 0, "submenu 3")
+        stdscr.addstr(0, 0, "Delete")
 
-        key = stdscr.getch()
-
-        if key in (curses.KEY_ENTER, 10):
-            break
-        else:
+        curses.echo()
+        stdscr.addstr(2, 0, "Name: ")
+        name = stdscr.getstr(2, 6).decode('utf-8')
+                                          
+        try:
+            del tempDict[name]
+            stdscr.addstr(4, 0, f"Removed {name} from current dictionary")
             stdscr.refresh()
-            stdscr.getch()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+
+            if key in (curses.KEY_ENTER, 10):
+                break
+        except KeyError:
+            print("Item does not exist")
 def saveMenu(stdscr):
     key = ""
     sel = 0
