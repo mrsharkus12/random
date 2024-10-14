@@ -1,30 +1,43 @@
 import curses
 import json
 
-SampleDict = {"john": {"occupation": "director", "wage": 1500}}
+isProgramActive = True
+
+SampledictData = {"john": {"occupation": "director", "wage": 1500}}
 DefaultFileName = "Default.json"
+
+# VSCode sucks balls >:(
+Debug_VSCodeInput = True
+TerminalKeys = [curses.KEY_UP, curses.KEY_DOWN, curses.KEY_RIGHT, curses.KEY_LEFT] 
+VSCodeKeys = [curses.KEY_A2, curses.KEY_C2, curses.KEY_B3, curses.KEY_B1]
+
+if Debug_VSCodeInput:
+    inputKeys = VSCodeKeys
+else:
+    inputKeys = TerminalKeys
 
 # def file creation
 try:
     with open(DefaultFileName, "r", encoding='utf-8') as file:
         string = json.load(file)
-        dict = string
+        dictData = string
         # print(f"Successfully read {DefaultFileName}")
 except FileNotFoundError:
     # create a sample file
     with open(DefaultFileName, "w") as file:
-        string = json.dumps(SampleDict)
+        string = json.dumps(SampledictData)
         file.write(string)
     # print(f"Successfully saved to {DefaultFileName}")
     with open(DefaultFileName, "r", encoding='utf-8') as file:
         string = json.load(file)
-        dict = string
+        dictData = string
         # print(f"Successfully read {DefaultFileName}")
 
 # submenus
 def editMenu(stdscr):
+    global dictData
     try:
-        tempDict = dict
+        tempdictData = dictData
     except TypeError:
         stdscr.addstr(15, 0, "Fatal error!!!", curses.color_pair(2))
 
@@ -43,9 +56,9 @@ def editMenu(stdscr):
 
         key = stdscr.getch()
 
-        if key == curses.KEY_UP:
+        if key == inputKeys[0]:
             sel = (sel - 1) % len(options)
-        elif key == curses.KEY_DOWN:
+        elif key == inputKeys[1]:
             sel = (sel + 1) % len(options)
         elif key in (curses.KEY_ENTER, 10):
             if sel == 0:  # Add/Edit Item
@@ -62,12 +75,12 @@ def editMenu(stdscr):
                 curses.noecho()
 
                 editType = ""
-                if name not in tempDict:
-                    tempDict[name] = {}
+                if name not in tempdictData:
+                    tempdictData[name] = {}
                     editType = "Added"
                 else:
                     editType = "Edited"
-                tempDict[name][param] = val
+                tempdictData[name][param] = val
 
                 stdscr.addstr(6, 0, f"{editType} {name}'s {param} to {val}")
                 stdscr.refresh()
@@ -75,35 +88,48 @@ def editMenu(stdscr):
             elif sel == 1:
                 break
 def viewMenu(stdscr):
+    global dictData
+    key = ""
+
     try:
-        tempDict = dict
+        tempdictData = dictData
     except TypeError:
         stdscr.addstr(15, 0, "Fatal error!!!", curses.color_pair(2))
 
-    key = ""
     while True:
         stdscr.clear()
         stdscr.addstr(0, 0, "View")
 
-        if not tempDict:
-            stdscr.addstr(1, 0, "No items to display.")
-        else:
-            row = 2
-            for name, params in tempDict.items():
-                stdscr.addstr(row, 0, f"{name}:")
-                row += 1
-                for param, value in params.items():
-                    stdscr.addstr(row, 2, f"  {param} = {value}")
+        try:
+            if not tempdictData:
+                stdscr.addstr(1, 0, "No items to display.")
+            else:
+                row = 2
+                for name, params in tempdictData.items():
+                    stdscr.addstr(row, 0, f"{name}:")
                     row += 1
+                    for param, value in params.items():
+                        stdscr.addstr(row, 2, f"  {param} = {value}")
+                        row += 1
+        except AttributeError:
+            stdscr.addstr(3, 0, "Error reading loaded file, please load a proper file or load a default!", curses.color_pair(2))
+            stdscr.refresh()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
 
-        stdscr.addstr(row + 2, 0, "Press Enter to go back.", curses.color_pair(1))
+            if key in (curses.KEY_ENTER, 10):
+                break
+        stdscr.addstr(row + 1, 0, "Press Enter to go back.", curses.color_pair(1))
         key = stdscr.getch()
 
         if key in (curses.KEY_ENTER, 10):
             break
 def deleteMenu(stdscr):
+    global dictData
+    key = ""
+
     try:
-        tempDict = dict
+        tempdictData = dictData
     except TypeError:
         stdscr.addstr(15, 0, "Fatal error!!!", curses.color_pair(2))
 
@@ -114,10 +140,10 @@ def deleteMenu(stdscr):
         curses.echo()
         stdscr.addstr(2, 0, "Name: ")
         name = stdscr.getstr(2, 6).decode('utf-8')
-                                          
+
         try:
-            del tempDict[name]
-            stdscr.addstr(4, 0, f"Removed {name} from current dictionary")
+            del tempdictData[name]
+            stdscr.addstr(4, 0, f"Removed {name} from current dictDataionary")
             stdscr.refresh()
             stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
             key = stdscr.getch()
@@ -125,41 +151,91 @@ def deleteMenu(stdscr):
             if key in (curses.KEY_ENTER, 10):
                 break
         except KeyError:
-            print("Item does not exist")
+            stdscr.addstr(4, 0, f"Item does not exist in current list.", curses.color_pair(2))
+            stdscr.refresh()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+
+            if key in (curses.KEY_ENTER, 10):
+                break
 def saveMenu(stdscr):
     key = ""
-    sel = 0
+    global dictData
 
     while True:
         stdscr.clear()
-        stdscr.addstr(0, 0, "submenu 4")
+        stdscr.addstr(0, 0, "Save into File")
 
-        key = stdscr.getch()
+        curses.echo()
+        stdscr.addstr(2, 0, "File Name: ")
+        fileName = stdscr.getstr(2, 11).decode('utf-8')
 
-        if key in (curses.KEY_ENTER, 10):
-            break
-        else:
+        if not fileName.endswith('.json'):
+            fileName = fileName + ".json"
+
+        try:
+            with open(fileName, "w") as file:
+                string = json.dumps(dictData)
+                file.write(string)
+            stdscr.addstr(4, 0, f"Successfully saved to {fileName}")
             stdscr.refresh()
-            stdscr.getch()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+            if key in (curses.KEY_ENTER, 10):
+                break
+        except OSError:
+            stdscr.addstr(4, 0, "Invalid character used.", curses.color_pair(2))
+            stdscr.refresh()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+
+            if key in (curses.KEY_ENTER, 10):
+                break
 def loadMenu(stdscr):
     key = ""
-    sel = 0
+    global dictData
 
     while True:
         stdscr.clear()
-        stdscr.addstr(0, 0, "submenu 5")
+        stdscr.addstr(0, 0, "Load from File")
 
-        key = stdscr.getch()
-
-        if key in (curses.KEY_ENTER, 10):
+        curses.echo()
+        stdscr.addstr(2, 0, "File Name: ")
+        fileName = stdscr.getstr(2, 11).decode('utf-8')
+        if fileName == "":
             break
-        else:
+
+        if not fileName.endswith('.json'):
+            fileName = fileName + ".json"
+        try:
+            with open(fileName, "r") as file:
+                dictData = json.load(file)
+            stdscr.addstr(4, 0, f"Successfully read {fileName}")
             stdscr.refresh()
-            stdscr.getch()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+            if key in (curses.KEY_ENTER, 10):
+                break
+        except FileNotFoundError: # File not found handler
+            stdscr.addstr(4, 0, "File not found.", curses.color_pair(2))
+            stdscr.refresh()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+
+            if key in (curses.KEY_ENTER, 10):
+                break
+        except json.JSONDecodeError: # Decode error handler
+            stdscr.addstr(4, 0, "File not found.", curses.color_pair(2))
+            stdscr.refresh()
+            stdscr.addstr(5, 0, "Press Enter to go back.", curses.color_pair(1))
+            key = stdscr.getch()
+
+            if key in (curses.KEY_ENTER, 10):
+                break
 def quitMenu(stdscr):
     key = ""
     sel = 0
-    options = ["nah", "yeah"]
+    options = ["No", "Yes"]
 
     while True:
         stdscr.clear()
@@ -172,28 +248,29 @@ def quitMenu(stdscr):
 
         key = stdscr.getch()
 
-        if key == curses.KEY_UP:
+        if key == inputKeys[0]:
             sel = (sel-1)%len(options)
-        elif key == curses.KEY_DOWN:
+        elif key == inputKeys[1]:
             sel = (sel+1)%len(options)
         elif key in (curses.KEY_ENTER, 10):
             if sel == 0: # Edit
-                break
+                return False
             elif sel == 1: # Edit
-                break
-
+                return True
 # main menu
 def mainGUI(stdscr):
+    global isProgramActive
+
     key = ""
     sel = 0
     options = ["Edit", "View", "Delete", "Load", "Save", "Exit"]
 
     curses.start_color()
-    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE) # Highlighted Priority
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED) # Highlighted Error
 
     stdscr.clear()
-    while True:
+    while isProgramActive:
         stdscr.clear()
 
         stdscr.addstr(0, 0, "Select Option")
@@ -205,9 +282,9 @@ def mainGUI(stdscr):
 
         key = stdscr.getch()
         
-        if key == curses.KEY_UP:
+        if key == inputKeys[0]:
             sel = (sel-1)%len(options)
-        elif key == curses.KEY_DOWN:
+        elif key == inputKeys[1]:
             sel = (sel+1)%len(options)
         elif key in (curses.KEY_ENTER, 10):
             if sel == 0: # Edit
@@ -221,8 +298,9 @@ def mainGUI(stdscr):
             elif sel == 4: # Save
                 saveMenu(stdscr)
             elif sel == 5: # Exit
-                quitMenu(stdscr)
+                if quitMenu(stdscr):
+                    isProgramActive = False
 
         stdscr.refresh()
-
+# execute
 curses.wrapper(mainGUI)
