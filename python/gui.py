@@ -1,5 +1,81 @@
 import curses
 
+def editMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 1")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def viewMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 2")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def deleteMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 3")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def saveMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 4")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def loadMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 5")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+
 def mainGUI(stdscr):
     key = ""
     sel = 0
@@ -22,21 +98,21 @@ def mainGUI(stdscr):
         key = stdscr.getch()
         
         if key == curses.KEY_UP:
-            sel = (sel - 1)%len(options)
+            sel = (sel-1)%len(options)
         elif key == curses.KEY_DOWN:
-            sel = (sel + 1)%len(options)
+            sel = (sel+1)%len(options)
         elif key in (curses.KEY_ENTER, 10):
-            if sel == 0:
-                print("test!!!")
-            elif sel == 1:
-                print("test!!!")
-            elif sel == 2:
-                print("test!!!")
-            elif sel == 3:
-                print("test!!!")
-            elif sel == 4:
-                print("test!!!")
-            elif sel == 5:
+            if sel == 0: # Edit
+                editMenu(stdscr)
+            elif sel == 1: # View
+                viewMenu(stdscr)
+            elif sel == 2: # Delete
+                deleteMenu(stdscr)
+            elif sel == 3: # Load
+                loadMenu(stdscr)
+            elif sel == 4: # Save
+                saveMenu(stdscr)
+            elif sel == 5: # Exit
                 break
 
         stdscr.refresh()
