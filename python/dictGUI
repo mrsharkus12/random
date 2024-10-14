@@ -1,0 +1,221 @@
+import curses
+import json
+
+SampleDict = {"john": {"occupation": "director", "wage": 1500}}
+DefaultFileName = "Default.json"
+
+# def file creation
+try:
+    with open(DefaultFileName, "r", encoding='utf-8') as file:
+        string = json.load(file)
+        dict = string
+        # print(f"Successfully read {DefaultFileName}")
+except FileNotFoundError:
+    # create a sample file
+    with open(DefaultFileName, "w") as file:
+        string = json.dumps(SampleDict)
+        file.write(string)
+    # print(f"Successfully saved to {DefaultFileName}")
+    with open(DefaultFileName, "r", encoding='utf-8') as file:
+        string = json.load(file)
+        dict = string
+        # print(f"Successfully read {DefaultFileName}")
+
+# submenus
+def editMenu(stdscr):
+    try:
+        tempDict = dict
+    except TypeError:
+        stdscr.addstr(15, 0, "Fatal error!!!", curses.color_pair(2))
+
+    key = ""
+    sel = 0
+    options = ["Add/Edit Item", "Back"]
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "Edit Menu")
+        for index, option in enumerate(options):
+            if index == sel:
+                stdscr.addstr(index + 1, 0, option, curses.color_pair(1))
+            else:
+                stdscr.addstr(index + 1, 0, option, curses.color_pair(0))
+
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP:
+            sel = (sel - 1) % len(options)
+        elif key == curses.KEY_DOWN:
+            sel = (sel + 1) % len(options)
+        elif key in (curses.KEY_ENTER, 10):
+            if sel == 0:  # Add/Edit Item
+                stdscr.clear()
+                stdscr.addstr(0, 0, "Add/Edit Item")
+                
+                curses.echo()
+                stdscr.addstr(2, 0, "Name: ")
+                name = stdscr.getstr(2, 6).decode('utf-8')
+                stdscr.addstr(3, 0, "Parameter: ")
+                param = stdscr.getstr(3, 11).decode('utf-8')
+                stdscr.addstr(4, 0, "Value: ")
+                val = stdscr.getstr(4, 6).decode('utf-8')
+                curses.noecho()
+
+                editType = ""
+                if name not in tempDict:
+                    tempDict[name] = {}
+                    editType = "Added"
+                else:
+                    editType = "Edited"
+                tempDict[name][param] = val
+
+                stdscr.addstr(6, 0, f"{editType} {name}'s {param} to {val}")
+                stdscr.refresh()
+                stdscr.getch()
+            elif sel == 1:
+                break
+def viewMenu(stdscr):
+    try:
+        tempDict = dict
+    except TypeError:
+        stdscr.addstr(15, 0, "Fatal error!!!", curses.color_pair(2))
+
+    key = ""
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "View")
+
+        if not tempDict:
+            stdscr.addstr(1, 0, "No items to display.")
+        else:
+            row = 2
+            for name, params in tempDict.items():
+                stdscr.addstr(row, 0, f"{name}:")
+                row += 1
+                for param, value in params.items():
+                    stdscr.addstr(row, 2, f"  {param} = {value}")
+                    row += 1
+
+        stdscr.addstr(row + 2, 0, "Press Enter to go back.", curses.color_pair(1))
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def deleteMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 3")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def saveMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 4")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def loadMenu(stdscr):
+    key = ""
+    sel = 0
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "submenu 5")
+
+        key = stdscr.getch()
+
+        if key in (curses.KEY_ENTER, 10):
+            break
+        else:
+            stdscr.refresh()
+            stdscr.getch()
+def quitMenu(stdscr):
+    key = ""
+    sel = 0
+    options = ["nah", "yeah"]
+
+    while True:
+        stdscr.clear()
+        stdscr.addstr(0, 0, "Are you sure you want to quit?")
+        for index, option in enumerate(options):
+            if index == sel:
+                stdscr.addstr(index + 1, 0, option, curses.color_pair(2))
+            else:
+                stdscr.addstr(index + 1, 0, option, curses.color_pair(0))
+
+        key = stdscr.getch()
+
+        if key == curses.KEY_UP:
+            sel = (sel-1)%len(options)
+        elif key == curses.KEY_DOWN:
+            sel = (sel+1)%len(options)
+        elif key in (curses.KEY_ENTER, 10):
+            if sel == 0: # Edit
+                break
+            elif sel == 1: # Edit
+                break
+
+# main menu
+def mainGUI(stdscr):
+    key = ""
+    sel = 0
+    options = ["Edit", "View", "Delete", "Load", "Save", "Exit"]
+
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+    curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_RED)
+
+    stdscr.clear()
+    while True:
+        stdscr.clear()
+
+        stdscr.addstr(0, 0, "Select Option")
+        for index, option in enumerate(options):
+            if index == sel:
+                stdscr.addstr(index + 1, 0, option, curses.color_pair(1))
+            else:
+                stdscr.addstr(index + 1, 0, option, curses.color_pair(0))
+
+        key = stdscr.getch()
+        
+        if key == curses.KEY_UP:
+            sel = (sel-1)%len(options)
+        elif key == curses.KEY_DOWN:
+            sel = (sel+1)%len(options)
+        elif key in (curses.KEY_ENTER, 10):
+            if sel == 0: # Edit
+                editMenu(stdscr)
+            elif sel == 1: # View
+                viewMenu(stdscr)
+            elif sel == 2: # Delete
+                deleteMenu(stdscr)
+            elif sel == 3: # Load
+                loadMenu(stdscr)
+            elif sel == 4: # Save
+                saveMenu(stdscr)
+            elif sel == 5: # Exit
+                quitMenu(stdscr)
+
+        stdscr.refresh()
+
+curses.wrapper(mainGUI)
