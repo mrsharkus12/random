@@ -7,7 +7,7 @@ try:
 except ModuleNotFoundError:
     isProgramActive = False
     print("Critical modules not found.")
-    print("Make sure that you've got both 'json' and 'curses' packages")
+    print("Make sure that you've got both 'json', 'psycopg2', and 'curses' packages")
     print("both properly installed and set up.")
     quit()
 
