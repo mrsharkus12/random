@@ -1,7 +1,3 @@
-AppName = "mrsharksu's based app >:)"
-ResolutionWidth = "800"
-ResolutionHeight = "600"
-
 ## frame controllers
 from tkinter import *
 from tkinter import ttk
@@ -9,9 +5,25 @@ from tkinter import font
 from tkinter import filedialog
 from tkinter import messagebox
 
+## file extension controllers
 import os
 import json
 import csv
+
+MainWindow_Title = "Title"
+MainWindow_ResWidth = "640"
+MainWindow_ResHeight = "350"
+
+AddWindow_Title = "Add an entry..."
+AddWindow_ResWidth = "250"
+AddWindow_ResHeight = "250"
+
+SettingsWindow_Title = "Settings"
+SettingsWindow_ResWidth = "240"
+SettingsWindow_ResHeight = "240"
+
+supportedToLoadTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
+supportedToSaveTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
 
 TestList = {
     "john": {"occupation": "director", "wage": 1500},
@@ -20,38 +32,60 @@ TestList = {
 }
 DefaultFileName = "Default.json"
 
-# default file creation
-try:
-    with open(DefaultFileName, "r", encoding='utf-8') as file:
-        string = json.load(file)
-        dictData = string
-except FileNotFoundError:
-    with open(DefaultFileName, "w") as file:
-        string = json.dumps(TestList, ensure_ascii=False, indent=4)
-        file.write(string)
-    with open(DefaultFileName, "r", encoding='utf-8') as file:
-        string = json.load(file)
-        dictData = string
+## default file creation
+def defFileCreation(fileName):
+    global dictData
+
+    try:
+        with open(fileName, "r", encoding='utf-8') as file:
+            string = json.load(file)
+            dictData = string
+    except FileNotFoundError:
+        with open(fileName, "w") as file:
+            string = json.dumps(TestList, ensure_ascii=False, indent=4)
+            file.write(string)
+        with open(fileName, "r", encoding='utf-8') as file:
+            string = json.load(file)
+            dictData = string
+
+def CSVformatConvert(nestedDict):
+    flat_list = []
+    for key, value in nestedDict.items():
+        flat_dict = {'name': key}
+        flat_dict.update(value)
+        flat_list.append(flat_dict)
+    return flat_list
+
+def JSONformatConvert(file_path):
+    nested_dict = {}
+    with open(file_path, "r") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            name = row['name']
+            nested_dict[name] = {k: row[k] for k in row if k != 'name'}
+    return nested_dict
 
 ## UI
 class UI(Frame):
     global dictData
 
     def __init__(self, master):
+        defFileCreation(DefaultFileName)    # create default file
+
         Frame.__init__(self, master)
         self.master = master
-        self.base()
+        self.base_Window()
+
         self.editing = False
         self.current_item = None 
         self.current_column = None
         self.entry = None
 
-    def base(self):
+    def base_Window(self):
         global dictData
 
-        self.master.title(AppName)
-        self.master.geometry(ResolutionWidth + "x" + ResolutionHeight)  # Example resolution
-        self.master.attributes("-toolwindow", True)
+        self.master.title(MainWindow_Title)
+        self.master.geometry(MainWindow_ResWidth + "x" + MainWindow_ResHeight)
         self.master.resizable(False, False)
 
         self.master.option_add("*tearOff", False)
@@ -59,14 +93,14 @@ class UI(Frame):
         mainMenu = Menu()
         fileMenu = Menu()
         editMenu = Menu()
-
-        fileMenu.add_command(label="Save", command=self.saveFile)
-        fileMenu.add_command(label="Load", command=self.loadFile)
+ 
+        fileMenu.add_command(label="Save", command=self.saveFile_Ask)
+        fileMenu.add_command(label="Load", command=self.loadFile_Ask)
         fileMenu.add_separator()
+        fileMenu.add_command(label="Settings", command=self.settings_Window)
         fileMenu.add_command(label="Exit", command=root.quit)
 
-        editMenu.add_command(label="Add", command=self.testWindow)
-        editMenu.add_command(label="Edit")
+        editMenu.add_command(label="Add", command=self.addEntry_Window)
         editMenu.add_command(label="Delete")
 
         mainMenu.add_cascade(label="File", menu=fileMenu)
@@ -96,6 +130,7 @@ class UI(Frame):
 
         self.tree.bind("<Double-1>", self.mouseDoubleClick)
 
+    # Double click event
     def mouseDoubleClick(self, event):
         if self.editing:
             return
@@ -145,23 +180,41 @@ class UI(Frame):
 
         return current_values
 
-    def testWindow(self):
+    def addEntry_Window(self):
         win = Tk()
-        win.title("AppName")
-        win.geometry("800x600")
+        win.title(AddWindow_Title)
+        win.geometry(AddWindow_ResWidth + "x" + AddWindow_ResHeight)
         win.attributes("-toolwindow", True)
         win.resizable(False, False)
 
-    def loadFile(self):
+        ttk.Entry(win).pack(anchor=NW, padx=8, pady=8)
+        ttk.Button(win, text="+").pack(anchor=E, padx=8, pady=0)
+
+    def settings_Window(self):
+        win = Tk()
+        win.title(SettingsWindow_Title)
+        win.geometry(SettingsWindow_ResWidth + "x" + SettingsWindow_ResHeight)
+        win.attributes("-toolwindow", True)
+        win.resizable(False, False)
+
+        ttk.Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName)).pack(anchor=NW, padx=8, pady=8)
+
+    # Opens file selection dialog
+    def loadFile_Ask(self):
         global dictData
 
-        supportedTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
-        dlg = filedialog.askopenfilename(filetypes=supportedTypes, defaultextension=".json")
+        dlg = filedialog.askopenfilename(filetypes=supportedToLoadTypes, defaultextension=".json")
 
         if not dlg: return
         try:
-            with open(dlg, "r") as file:
-                dictData = json.load(file)
+            if dlg.endswith('.json'):
+                with open(dlg, "r") as file:
+                    dictData = json.load(file)
+            elif dlg.endswith('.csv'):
+                dictData = JSONformatConvert(dlg)
+            else:
+                messagebox.showerror("Error", "Unsupported file type.")
+                return
 
             for item in self.tree.get_children():
                 self.tree.delete(item)
@@ -174,16 +227,23 @@ class UI(Frame):
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-    def saveFile(self):
+    # Opens file selection dialog (as save)
+    def saveFile_Ask(self):
         global dictData
 
-        supportedTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
-        dlg = filedialog.asksaveasfilename(filetypes=supportedTypes, defaultextension=".json")
+        dlg = filedialog.asksaveasfilename(filetypes=supportedToSaveTypes, defaultextension=".json")
         
         if not dlg: return
-        with open(dlg, "w") as file:
-            string = json.dumps(dictData, ensure_ascii=False, indent=4)
-            file.write(string)
+        if dlg.endswith('.json'):
+            with open(dlg, "w") as file:
+                string = json.dumps(dictData, ensure_ascii=False, indent=4)
+                file.write(string)
+        elif dlg.endswith('.csv'):
+            converted = CSVformatConvert(dictData)
+            with open(dlg, "w", newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=converted[0].keys())
+                writer.writeheader()
+                writer.writerows(converted)
 
 # start the app
 root = Tk()
