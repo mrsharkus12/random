@@ -1,34 +1,58 @@
-## frame controllers
-from tkinter import *
-from tkinter import ttk
-from tkinter import font
-from tkinter import filedialog
-from tkinter import messagebox
+try:
+    ## frame controllers
+    from tkinter import *
+    from tkinter import ttk
+    from tkinter import font
+    from tkinter import filedialog
+    from tkinter import messagebox
 
-## file extension controllers
-import os
-import json
-import csv
+    ## file extension controllers
+    import os
+    import json
+    import csv
 
+    ## SQL controllers
+    import psycopg2
+except ModuleNotFoundError:
+    print("Critical modules not found.")
+    quit()
+except Exception as e:
+    print("Error", f"An error occurred: {str(e)}")
+
+## windows params
 MainWindow_Title = "Title"
 MainWindow_ResWidth = "640"
 MainWindow_ResHeight = "350"
 
 AddWindow_Title = "Add an entry..."
 AddWindow_ResWidth = "250"
-AddWindow_ResHeight = "250"
+AddWindow_ResHeight = "0"
 
 SettingsWindow_Title = "Settings"
 SettingsWindow_ResWidth = "240"
 SettingsWindow_ResHeight = "240"
 
+## supported file types
 supportedToLoadTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
 supportedToSaveTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
 
+## SQL settings
+IsSQLEnabled = False
+DB_HOST = 'localhost'
+DB_NAME = 'TestDB'
+DB_USER = 'postgres'
+DB_PASSWORD = '123'
+
+## DB connection
+def connect_db():
+    if IsSQLEnabled:
+        return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
+
+## default file
 TestList = {
-    "john": {"occupation": "director", "wage": 1500},
-    "jane": {"occupation": "developer", "wage": 1200},
-    "doe": {"occupation": "designer", "wage": 1300},
+    "John": {"Occupation": "Director", "Salary": 1500},
+    "Jane": {"Occupation": "Developer", "Salary": 1200},
+    "Doe": {"Occupation": "Designer", "Salary": 1300},
 }
 DefaultFileName = "Default.json"
 
@@ -48,6 +72,7 @@ def defFileCreation(fileName):
             string = json.load(file)
             dictData = string
 
+## Converters
 def CSVformatConvert(nestedDict):
     flat_list = []
     for key, value in nestedDict.items():
@@ -65,6 +90,7 @@ def JSONformatConvert(file_path):
             nested_dict[name] = {k: row[k] for k in row if k != 'name'}
     return nested_dict
 
+#### Main
 ## UI
 class UI(Frame):
     global dictData
@@ -74,12 +100,14 @@ class UI(Frame):
 
         Frame.__init__(self, master)
         self.master = master
+        self.DeletionToggle = BooleanVar()
         self.base_Window()
 
         self.editing = False
         self.current_item = None 
         self.current_column = None
         self.entry = None
+
 
     def base_Window(self):
         global dictData
@@ -88,11 +116,9 @@ class UI(Frame):
         self.master.geometry(MainWindow_ResWidth + "x" + MainWindow_ResHeight)
         self.master.resizable(False, False)
 
-        self.master.option_add("*tearOff", False)
-
-        mainMenu = Menu()
-        fileMenu = Menu()
-        editMenu = Menu()
+        mainMenu = Menu(self.master, tearoff=0)
+        fileMenu = Menu(mainMenu, tearoff=0)
+        editMenu = Menu(mainMenu, tearoff=0)
  
         fileMenu.add_command(label="Save", command=self.saveFile_Ask)
         fileMenu.add_command(label="Load", command=self.loadFile_Ask)
@@ -100,8 +126,10 @@ class UI(Frame):
         fileMenu.add_command(label="Settings", command=self.settings_Window)
         fileMenu.add_command(label="Exit", command=root.quit)
 
-        editMenu.add_command(label="Add", command=self.addEntry_Window)
-        editMenu.add_command(label="Delete")
+        editMenu.add_command(label="Add an Entry", command=self.addEntry_Window)
+        editMenu.add_command(label="Add/Edit Columns")
+        editMenu.add_separator()
+        editMenu.add_checkbutton(label="Delete", onvalue=1, offvalue=0, variable=self.DeletionToggle)
 
         mainMenu.add_cascade(label="File", menu=fileMenu)
         mainMenu.add_cascade(label="Editing", menu=editMenu)
@@ -127,6 +155,21 @@ class UI(Frame):
         scrollbar = ttk.Scrollbar(orient=VERTICAL, command=self.tree.yview)
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.grid(row=0, column=1, sticky="ns")
+
+            
+        def deleteEntry(self):
+            if self.DeletionToggle.get():  # Check if deletion is toggled on
+                selected_item = self.tree.selection()  # Get the selected item
+                if selected_item:  # If there is a selected item
+                    item_values = self.tree.item(selected_item, 'values')  # Get the values of the selected item
+                    name_to_delete = item_values[0]  # Assuming the first column is the name
+
+                    # Remove from dictData
+                    if name_to_delete in dictData:
+                        del dictData[name_to_delete]
+
+                    # Remove from the Treeview
+                    self.tree.delete(selected_item)
 
         self.tree.bind("<Double-1>", self.mouseDoubleClick)
 
@@ -187,8 +230,37 @@ class UI(Frame):
         win.attributes("-toolwindow", True)
         win.resizable(False, False)
 
-        ttk.Entry(win).pack(anchor=NW, padx=8, pady=8)
-        ttk.Button(win, text="+").pack(anchor=E, padx=8, pady=0)
+        frame = ttk.Frame(win)
+        frame.pack(padx=8, pady=8)
+
+        current_height = int(AddWindow_ResHeight)
+
+        def add_entry():
+            nonlocal current_height
+            entry = ttk.Entry(frame)
+            entry.pack(anchor=NW, padx=8, pady=5)
+
+            button = ttk.Button(frame, text="+", command=add_entry)
+            button.pack(anchor=NE, padx=8, pady=0)
+
+            current_height += 100
+            win.geometry(AddWindow_ResWidth + "x" + str(current_height))
+
+        add_entry()
+
+        submit_button = ttk.Button(win, text="Submit", command=lambda: self.handle_entries(frame))
+        submit_button.pack(anchor=SE, padx=8, pady=8)
+
+    def handle_entries(self, frame):
+        entries = frame.winfo_children()
+        data = []
+        for widget in entries:
+            if isinstance(widget, ttk.Entry):
+                data.append(widget.get())
+        
+        print(data)
+
+        frame.master.destroy()
 
     def settings_Window(self):
         win = Tk()
