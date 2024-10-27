@@ -20,7 +20,7 @@ except Exception as e:
     print("Error", f"An error occurred: {str(e)}")
 
 ## windows params
-MainWindow_Title = "Title"
+MainWindow_Title = ""
 MainWindow_ResWidth = "640"
 MainWindow_ResHeight = "350"
 
@@ -32,21 +32,13 @@ SettingsWindow_Title = "Settings"
 SettingsWindow_ResWidth = "240"
 SettingsWindow_ResHeight = "240"
 
+CMDWindow_Title = "SQL Command Line"
+CMDWindow_ResWidth = "500"
+CMDWindow_ResHeight = "250"
+
 ## supported file types
 supportedToLoadTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
 supportedToSaveTypes = [('JavaScript Object Notation', '*.json'), ('Comma Separated Values', '*.csv'), ('All files', '*')]
-
-## SQL settings
-IsSQLEnabled = False
-DB_HOST = 'localhost'
-DB_NAME = 'TestDB'
-DB_USER = 'postgres'
-DB_PASSWORD = '123'
-
-## DB connection
-def connect_db():
-    if IsSQLEnabled:
-        return psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
 
 ## default file
 TestList = {
@@ -55,6 +47,12 @@ TestList = {
     "Doe": {"Occupation": "Designer", "Salary": 1300},
 }
 DefaultFileName = "Default.json"
+
+DefaultConfig = {
+    "general": {"sql_enabled": False},
+    "sql": {"hostname": "localhost", "name": "TestDB", "user": "postgres", "password": "123"},
+}
+DefaultConfigFileName = "config.json"
 
 ## default file creation
 def defFileCreation(fileName):
@@ -71,6 +69,20 @@ def defFileCreation(fileName):
         with open(fileName, "r", encoding='utf-8') as file:
             string = json.load(file)
             dictData = string
+
+## config file creation
+def cfgFileCreation(fileName):
+    try:
+        with open(fileName, "r", encoding='utf-8') as file:
+            config = json.load(file)
+            return config
+    except FileNotFoundError:
+        with open(fileName, "w") as file:
+            string = json.dumps(DefaultConfig, ensure_ascii=False, indent=4)
+            file.write(string)
+        with open(fileName, "r", encoding='utf-8') as file:
+            config = json.load(file)
+            return config
 
 ## Converters
 def CSVformatConvert(nestedDict):
@@ -90,13 +102,60 @@ def JSONformatConvert(file_path):
             nested_dict[name] = {k: row[k] for k in row if k != 'name'}
     return nested_dict
 
+## DB connection \ executing
+def ConnectDB(config):
+    sql_config = config.get_sql_config()
+    
+    return psycopg2.connect(
+        host=sql_config['host'],
+        database=sql_config['database'],
+        user=sql_config['user'],
+        password=sql_config['password']
+    )
+
+def ExecuteSQLcode(entry):
+    global config
+    config = Config()
+
+    connect = ConnectDB(config)
+    with connect:
+        with connect.cursor() as cursor:
+            cursor.execute(entry)
+            # fetch = cursor.fetchone()
+    connect.close()
+
+    # if fetch is None:
+        # return "No results found."
+    
+    # return fetch
+
 #### Main
+## Config
+class Config():
+    def __init__(self, config_file=DefaultConfigFileName):
+        self.config = cfgFileCreation(config_file)
+
+    def is_sql_enabled(self):
+        return self.config["general"]["sql_enabled"]
+    
+    def get_sql_config(self):
+        return {
+            'host': self.config['sql']['hostname'],
+            'database': self.config['sql']['name'],
+            'user': self.config['sql']['user'],
+            'password': self.config['sql']['password']
+        }
+
 ## UI
 class UI(Frame):
     global dictData
 
     def __init__(self, master):
-        defFileCreation(DefaultFileName)    # create default file
+        defFileCreation(DefaultFileName)
+        cfgFileCreation(DefaultConfigFileName)
+
+        global config
+        config = Config()
 
         Frame.__init__(self, master)
         self.master = master
@@ -108,6 +167,12 @@ class UI(Frame):
         self.current_column = None
         self.entry = None
 
+        if config.is_sql_enabled():
+            try:
+                fetched = ExecuteSQLcode("SELECT version();")
+                print(fetched)
+            except Exception as err:
+                messagebox.showerror("Connection Check Error", str(err))
 
     def base_Window(self):
         global dictData
@@ -130,6 +195,8 @@ class UI(Frame):
         editMenu.add_command(label="Add/Edit Columns")
         editMenu.add_separator()
         editMenu.add_checkbutton(label="Delete", onvalue=1, offvalue=0, variable=self.DeletionToggle)
+        editMenu.add_separator()
+        editMenu.add_command(label=CMDWindow_Title, command=self.cmd_Window)
 
         mainMenu.add_cascade(label="File", menu=fileMenu)
         mainMenu.add_cascade(label="Editing", menu=editMenu)
@@ -156,19 +223,16 @@ class UI(Frame):
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.grid(row=0, column=1, sticky="ns")
 
-            
         def deleteEntry(self):
-            if self.DeletionToggle.get():  # Check if deletion is toggled on
-                selected_item = self.tree.selection()  # Get the selected item
-                if selected_item:  # If there is a selected item
-                    item_values = self.tree.item(selected_item, 'values')  # Get the values of the selected item
-                    name_to_delete = item_values[0]  # Assuming the first column is the name
+            if self.DeletionToggle.get():
+                selected_item = self.tree.selection()
+                if selected_item:
+                    item_values = self.tree.item(selected_item, 'values')
+                    name_to_delete = item_values[0]
 
-                    # Remove from dictData
                     if name_to_delete in dictData:
                         del dictData[name_to_delete]
 
-                    # Remove from the Treeview
                     self.tree.delete(selected_item)
 
         self.tree.bind("<Double-1>", self.mouseDoubleClick)
@@ -263,6 +327,8 @@ class UI(Frame):
         frame.master.destroy()
 
     def settings_Window(self):
+        global config
+
         win = Tk()
         win.title(SettingsWindow_Title)
         win.geometry(SettingsWindow_ResWidth + "x" + SettingsWindow_ResHeight)
@@ -270,6 +336,53 @@ class UI(Frame):
         win.resizable(False, False)
 
         ttk.Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName)).pack(anchor=NW, padx=8, pady=8)
+
+    def cmd_Window(self):
+        global config
+
+        win = Tk()
+        win.title(CMDWindow_Title)
+        win.geometry(CMDWindow_ResWidth + "x" + CMDWindow_ResHeight)
+        win.attributes("-toolwindow", True)
+        win.resizable(False, False)
+
+        def clear():
+            entryline.delete('1.0', END)
+
+        def execute():
+            receive=entryline.get("1.0","end-1c") 
+            try:
+                if config.is_sql_enabled():
+                    exec = ExecuteSQLcode(receive)
+
+                    if exec:
+                        messagebox.showinfo("Info", str(exec))
+            except Exception as e:
+                messagebox.showerror("Execution Error", str(e))
+
+        entryline = Text(win)
+        entryline.grid(row=0, column=0, sticky='nsew', padx=8, pady=8)
+
+        if config.is_sql_enabled():
+            warntext = "Ready"
+            text_color = "green"
+            entryline.config(state="normal")
+        else:
+            warntext = "Unavailable"
+            text_color = "red"
+            entryline.config(state="disabled")
+
+        warn_label = Label(win, text=warntext, fg=text_color, font=("Consolas", 20))
+        warn_label.grid(row=1, column=0, sticky='s', padx=6, pady=6)
+
+        clear_button = ttk.Button(win, text="Clear", command=clear)
+        clear_button.grid(row=1, column=0, sticky='se', padx=6, pady=6)
+        
+        exec_button = ttk.Button(win, text="Execute", command=execute)
+        exec_button.grid(row=1, column=0, sticky='sw', padx=6, pady=6)
+        
+        win.grid_rowconfigure(0, weight=1)
+        win.grid_columnconfigure(0, weight=1)
 
     # Opens file selection dialog
     def loadFile_Ask(self):
