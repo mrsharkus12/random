@@ -335,7 +335,35 @@ class UI(Frame):
         win.attributes("-toolwindow", True)
         win.resizable(False, False)
 
-        ttk.Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName)).pack(anchor=NW, padx=8, pady=8)
+        defcfg = Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName))
+        defcfg.grid(row=0, column=0, sticky='nw')
+
+        toggleSQL_checkbox = Checkbutton(win, text="SQL Enabled")
+        toggleSQL_checkbox.grid(row=15, column=0, sticky='w')
+
+        Hostname_label = Label(win, text="Hostname: ")
+        Hostname_label.grid(row=20, column=0, sticky='w')
+
+        Hostname_entry = Entry(win)
+        Hostname_entry.grid(row=20, column=2, sticky='w')
+
+        DBname_label = Label(win, text="Database: ")
+        DBname_label.grid(row=25, column=0, sticky='w')
+
+        DBname_entry = Entry(win)
+        DBname_entry.grid(row=25, column=2, sticky='w')
+
+        Username_label = Label(win, text="User: ")
+        Username_label.grid(row=30, column=0, sticky='w')
+
+        Username_entry = Entry(win)
+        Username_entry.grid(row=30, column=2, sticky='w')
+
+        Password_label = Label(win, text="Password: ")
+        Password_label.grid(row=35, column=0, sticky='w')
+
+        Password_entry = Entry(win)
+        Password_entry.grid(row=35, column=2, sticky='w')
 
     def cmd_Window(self):
         global config
