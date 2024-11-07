@@ -210,8 +210,8 @@ class UI(Frame):
 
         self.tree = ttk.Treeview(columns=list(range(colAmount)), show="headings")
         self.tree.grid(row=0, column=0, rowspan=2, ipadx=6, ipady=55, padx=5, pady=5)
-
         self.tree.heading(0, text="Name")
+
         for index, key in enumerate(next(iter(dictData.values())).keys(), start=1):
             self.tree.heading(index, text=key)
 
@@ -223,40 +223,39 @@ class UI(Frame):
         self.tree.configure(yscroll=scrollbar.set)
         scrollbar.grid(row=0, column=1, sticky="ns")
 
-        def deleteEntry(self):
-            if self.DeletionToggle.get():
-                selected_item = self.tree.selection()
-                if selected_item:
-                    item_values = self.tree.item(selected_item, 'values')
-                    name_to_delete = item_values[0]
-
-                    if name_to_delete in dictData:
-                        del dictData[name_to_delete]
-
-                    self.tree.delete(selected_item)
-
         self.tree.bind("<Double-1>", self.mouseDoubleClick)
 
     # Double click event
     def mouseDoubleClick(self, event):
         if self.editing:
             return
-        
-        item = self.tree.selection()[0]
-        self.current_item = item
-        self.current_column = self.tree.identify_column(event.x)
+            
+        item = self.tree.selection()
+        if not item:
+            return
 
-        column_index = int(self.current_column.replace("#", "")) - 1
-        current_value = self.tree.item(item, "values")[column_index]
+        if self.DeletionToggle.get():
+            for selected_item in item:
+                name = self.tree.item(selected_item, "values")[0]
+                self.tree.delete(selected_item)
+                if name in dictData:
+                    del dictData[name]
+        else:
+            item = self.tree.selection()[0]
+            self.current_item = item
+            self.current_column = self.tree.identify_column(event.x)
 
-        self.entry = Entry(self.master)
-        self.entry.insert(0, current_value)
-        self.entry.grid(row=0, column=0, padx=5, pady=5)
+            column_index = int(self.current_column.replace("#", "")) - 1
+            current_value = self.tree.item(item, "values")[column_index]
 
-        self.entry.focus()
-        self.entry.bind("<Return>", self.startEdit)
+            self.entry = Entry(self.master)
+            self.entry.insert(0, current_value)
+            self.entry.grid(row=0, column=0, padx=5, pady=5)
 
-        self.editing = True
+            self.entry.focus()
+            self.entry.bind("<Return>", self.startEdit)
+
+            self.editing = True
 
     def startEdit(self, event):
         if not self.editing:
@@ -335,10 +334,29 @@ class UI(Frame):
         win.attributes("-toolwindow", True)
         win.resizable(False, False)
 
-        defcfg = Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName))
-        defcfg.grid(row=0, column=0, sticky='nw')
+        def save_settings():
+            hostname = Hostname_entry.get()
+            dbname = DBname_entry.get()
+            username = Username_entry.get()
+            password = Password_entry.get()
+            sql_enabled = toggleSQL_var.get()
 
-        toggleSQL_checkbox = Checkbutton(win, text="SQL Enabled")
+            formatted = {
+                "general": {"sql_enabled": sql_enabled},
+                "sql": {"hostname": hostname, "name": dbname, "user": username, "password": password},
+            }
+
+            print(formatted)
+
+            with open("config.json", "w") as file:
+                string = json.dumps(formatted, ensure_ascii=False, indent=4)
+                file.write(string)
+
+        defcfg = Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName))
+        defcfg.grid(row=0, column=0, sticky='n')
+
+        toggleSQL_var = BooleanVar()
+        toggleSQL_checkbox = Checkbutton(win, text="SQL Enabled", variable=toggleSQL_var)
         toggleSQL_checkbox.grid(row=15, column=0, sticky='w')
 
         Hostname_label = Label(win, text="Hostname: ")
@@ -364,6 +382,9 @@ class UI(Frame):
 
         Password_entry = Entry(win)
         Password_entry.grid(row=35, column=2, sticky='w')
+
+        Apply_button = Button(win, text="Apply", command=save_settings)
+        Apply_button.grid(row=50, column=0, sticky='sw')
 
     def cmd_Window(self):
         global config
