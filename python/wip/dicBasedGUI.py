@@ -20,13 +20,13 @@ except Exception as e:
     print("Error", f"An error occurred: {str(e)}")
 
 ## windows params
-MainWindow_Title = ""
+MainWindow_Title = "Main"
 MainWindow_ResWidth = "640"
 MainWindow_ResHeight = "350"
 
 AddWindow_Title = "Add an entry..."
-AddWindow_ResWidth = "250"
-AddWindow_ResHeight = "0"
+AddWindow_ResWidth = "165"
+AddWindow_ResHeight = "165"
 
 SettingsWindow_Title = "Settings"
 SettingsWindow_ResWidth = "240"
@@ -113,21 +113,26 @@ def ConnectDB(config):
         password=sql_config['password']
     )
 
-def ExecuteSQLcode(entry):
+def ExecuteSQLcode(entry, fetch=False):
     global config
     config = Config()
 
     connect = ConnectDB(config)
-    with connect:
-        with connect.cursor() as cursor:
-            cursor.execute(entry)
-            # fetch = cursor.fetchone()
-    connect.close()
-
-    # if fetch is None:
-        # return "No results found."
-    
-    # return fetch
+    try:
+        with connect:
+            with connect.cursor() as cursor:
+                cursor.execute(entry)
+                if fetch:
+                    # Fetch all results if requested
+                    results = cursor.fetchall()
+                    return results  # Return the fetched results
+                else:
+                    connect.commit()  # Commit the transaction if not fetching
+    except Exception as e:
+        print(f"Error executing SQL command: {e}")
+        raise
+    finally:
+        connect.close()
 
 #### Main
 ## Config
@@ -181,9 +186,73 @@ class UI(Frame):
         self.master.geometry(MainWindow_ResWidth + "x" + MainWindow_ResHeight)
         self.master.resizable(False, False)
 
+        if dictData:
+            colAmount = len(next(iter(dictData.values())).keys()) + 1
+        else:
+            colAmount = 0
+
+        def ToDatabase():
+            # print(dictData)
+            try:
+                if config.is_sql_enabled():
+                    create_table_command = """
+                    CREATE TABLE IF NOT EXISTS employees (
+                        name VARCHAR PRIMARY KEY,
+                        occupation VARCHAR,
+                        salary VARCHAR
+                    )
+                    """
+                    ExecuteSQLcode(create_table_command)
+
+                    ExecuteSQLcode("DELETE FROM employees")
+
+                    for name, details in dictData.items():
+                        occupation = details.get('Occupation')
+                        salary = details.get('Salary')
+                        sql_command = f"INSERT INTO employees (name, occupation, salary) VALUES ('{name}', '{occupation}', {salary})"
+                        ExecuteSQLcode(sql_command)
+
+                    messagebox.showinfo("Info", "Data loaded into database successfully.")
+                else: messagebox.showerror("SQL disabled.")
+            except Exception as e:
+                messagebox.showerror("Execution Error", str(e))
+
+        def FromDatabase():
+            global dictData
+            dictData = {}
+
+            try:
+                if config.is_sql_enabled():
+                    select_command = "SELECT name, occupation, salary FROM employees"
+                    rows = ExecuteSQLcode(select_command, fetch=True)
+
+                    for row in rows:
+                        name, occupation, salary = row
+                        dictData[name] = {
+                            'Occupation': occupation,
+                            'Salary': salary
+                        }
+                    UpdateTreeView()
+            except Exception as e:
+                messagebox.showerror("Execution Error", str(e))
+
+        def UpdateTreeView():
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            for name, details in dictData.items():
+                populate = [name] + [details[key] for key in details.keys()]
+                self.tree.insert("", "end", values=populate)
+
+        def createEntryANDupdate():
+            # silly :3
+            self.createEntry()
+            UpdateTreeView()
+
         mainMenu = Menu(self.master, tearoff=0)
         fileMenu = Menu(mainMenu, tearoff=0)
         editMenu = Menu(mainMenu, tearoff=0)
+        dbMenu = Menu(mainMenu, tearoff=0)
  
         fileMenu.add_command(label="Save", command=self.saveFile_Ask)
         fileMenu.add_command(label="Load", command=self.loadFile_Ask)
@@ -191,22 +260,22 @@ class UI(Frame):
         fileMenu.add_command(label="Settings", command=self.settings_Window)
         fileMenu.add_command(label="Exit", command=root.quit)
 
-        editMenu.add_command(label="Add an Entry", command=self.addEntry_Window)
-        editMenu.add_command(label="Add/Edit Columns")
+        editMenu.add_command(label="Add an Entry", command=createEntryANDupdate)
+        editMenu.add_command(label="Refresh", command=UpdateTreeView)
+        # editMenu.add_command(label="Add/Edit Columns")
         editMenu.add_separator()
         editMenu.add_checkbutton(label="Delete", onvalue=1, offvalue=0, variable=self.DeletionToggle)
-        editMenu.add_separator()
-        editMenu.add_command(label=CMDWindow_Title, command=self.cmd_Window)
+
+        dbMenu.add_command(label=CMDWindow_Title, command=self.cmd_Window)
+        dbMenu.add_separator()
+        dbMenu.add_command(label="Load into Database", command=ToDatabase)
+        dbMenu.add_command(label="Load from Database", command=FromDatabase)
 
         mainMenu.add_cascade(label="File", menu=fileMenu)
         mainMenu.add_cascade(label="Editing", menu=editMenu)
+        mainMenu.add_cascade(label="Database", menu=dbMenu)
 
         self.master.config(menu=mainMenu)
-
-        if dictData:
-            colAmount = len(next(iter(dictData.values())).keys()) + 1
-        else:
-            colAmount = 0
 
         self.tree = ttk.Treeview(columns=list(range(colAmount)), show="headings")
         self.tree.grid(row=0, column=0, rowspan=2, ipadx=6, ipady=55, padx=5, pady=5)
@@ -286,44 +355,85 @@ class UI(Frame):
 
         return current_values
 
-    def addEntry_Window(self):
-        win = Tk()
-        win.title(AddWindow_Title)
-        win.geometry(AddWindow_ResWidth + "x" + AddWindow_ResHeight)
-        win.attributes("-toolwindow", True)
-        win.resizable(False, False)
+    def createEntry(self):
+        global dictData
 
-        frame = ttk.Frame(win)
-        frame.pack(padx=8, pady=8)
+        dictData["Name"] = {
+            "Occupation": "Occupation",
+            "Salary": "Salary"
+        }
 
-        current_height = int(AddWindow_ResHeight)
+    # def addEntry_Window(self):
+    #     win = Tk()
+    #     win.title(AddWindow_Title)
+    #     win.geometry(AddWindow_ResWidth + "x" + AddWindow_ResHeight)
+    #     win.attributes("-toolwindow", True)
+    #     win.resizable(False, False)
 
-        def add_entry():
-            nonlocal current_height
-            entry = ttk.Entry(frame)
-            entry.pack(anchor=NW, padx=8, pady=5)
+    #     frame = ttk.Frame(win)
+    #     frame.grid(padx=0, pady=0)
 
-            button = ttk.Button(frame, text="+", command=add_entry)
-            button.pack(anchor=NE, padx=8, pady=0)
+    #     entryName = ttk.Entry(frame)
+    #     entryName.grid(row=0, column=0, sticky='NW', padx=8, pady=8)
 
-            current_height += 100
-            win.geometry(AddWindow_ResWidth + "x" + str(current_height))
+    #     entryOcc = ttk.Entry(frame)
+    #     entryOcc.grid(row=1, column=0, sticky='NW', padx=8, pady=8)
 
-        add_entry()
+    #     entrySal = ttk.Entry(frame)
+    #     entrySal.grid(row=2, column=0, sticky='NW', padx=8, pady=8)
 
-        submit_button = ttk.Button(win, text="Submit", command=lambda: self.handle_entries(frame))
-        submit_button.pack(anchor=SE, padx=8, pady=8)
+    #     submit_button = ttk.Button(win, text="Submit", command=lambda: self.submit_entry(entryName.get(), entryOcc.get(), entrySal.get()))
+    #     submit_button.grid(row=3, column=0, sticky='SE', padx=8, pady=8)
 
-    def handle_entries(self, frame):
-        entries = frame.winfo_children()
-        data = []
-        for widget in entries:
-            if isinstance(widget, ttk.Entry):
-                data.append(widget.get())
+    # def submit_entry(self, name, occupation, salary):
+    #     global dictData
+    #     if name in dictData:
+    #         messagebox.showerror("Input Error", "Name already exists.")
+    #         return
+
+    #     dictData[name] = {
+    #         "Occupation": occupation,
+    #         "Salary": salary
+    #     }
+
+    # def addEntry_Window(self):
+    #     win = Tk()
+    #     win.title(AddWindow_Title)
+    #     win.geometry(AddWindow_ResWidth + "x" + AddWindow_ResHeight)
+    #     win.attributes("-toolwindow", True)
+    #     win.resizable(False, False)
+
+    #     frame = ttk.Frame(win)
+    #     frame.pack(padx=8, pady=8)
+
+    #     current_height = int(AddWindow_ResHeight)
+
+    #     def add_entry():
+    #         nonlocal current_height
+    #         entry = ttk.Entry(frame)
+    #         entry.pack(anchor=NW, padx=8, pady=5)
+
+    #         button = ttk.Button(frame, text="+", command=add_entry)
+    #         button.pack(anchor=NE, padx=8, pady=0)
+
+    #         current_height += 100
+    #         win.geometry(AddWindow_ResWidth + "x" + str(current_height))
+
+    #     add_entry()
+
+    #     submit_button = ttk.Button(win, text="Submit", command=lambda: self.handle_entries(frame))
+    #     submit_button.pack(anchor=SE, padx=8, pady=8)
+
+    # def handle_entries(self, frame):
+    #     entries = frame.winfo_children()
+    #     data = []
+    #     for widget in entries:
+    #         if isinstance(widget, ttk.Entry):
+    #             data.append(widget.get())
         
-        print(data)
+    #     print(data)
 
-        frame.master.destroy()
+    #     frame.master.destroy()
 
     def settings_Window(self):
         global config
@@ -333,6 +443,9 @@ class UI(Frame):
         win.geometry(SettingsWindow_ResWidth + "x" + SettingsWindow_ResHeight)
         win.attributes("-toolwindow", True)
         win.resizable(False, False)
+
+        # Initialize toggleSQL_var with the current value from the config
+        toggleSQL_var = BooleanVar(value=config.is_sql_enabled())
 
         def save_settings():
             hostname = Hostname_entry.get()
@@ -352,10 +465,16 @@ class UI(Frame):
                 string = json.dumps(formatted, ensure_ascii=False, indent=4)
                 file.write(string)
 
-        defcfg = Button(win, text="Recreate Default File", command=defFileCreation(DefaultFileName))
-        defcfg.grid(row=0, column=0, sticky='n')
+            # Recreate the config object to reflect the new settings
+            global config
+            config = Config()
 
-        toggleSQL_var = BooleanVar()
+        def defcfg():
+            defFileCreation(DefaultFileName)
+
+        defcfg_button = Button(win, text="Recreate Default File", command=defcfg)
+        defcfg_button.grid(row=0, column=0, sticky='n')
+
         toggleSQL_checkbox = Checkbutton(win, text="SQL Enabled", variable=toggleSQL_var)
         toggleSQL_checkbox.grid(row=15, column=0, sticky='w')
 
